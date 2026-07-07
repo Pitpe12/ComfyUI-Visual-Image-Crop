@@ -46,13 +46,29 @@ function selectedImageUrl(node) {
   return `/view?${params.toString()}`;
 }
 
+function previewImageUrl(node) {
+  const image = node.imgs?.[0];
+  if (!image) return null;
+  if (typeof image === "string") return image;
+  if (image.src) return image.src;
+  if (image.filename) {
+    const params = new URLSearchParams();
+    params.set("filename", image.filename);
+    params.set("type", image.type || "input");
+    if (image.subfolder) params.set("subfolder", image.subfolder);
+    params.set("rand", node._cropGui?.imageCacheBust ?? 0);
+    return `/view?${params.toString()}`;
+  }
+  return null;
+}
+
 function markDirty(node) {
   node.setDirtyCanvas?.(true, true);
   node.graph?.setDirtyCanvas?.(true, true);
 }
 
 function getImage(node) {
-  const url = selectedImageUrl(node);
+  const url = previewImageUrl(node) || selectedImageUrl(node);
   if (!url) return null;
 
   node._cropGui ??= {};
@@ -454,6 +470,7 @@ function wireNode(node) {
     imageWidget.callback = function (value, ...args) {
       node._cropGui.imageCacheBust = Date.now();
       node._cropGui.url = null;
+      node._cropGui.img = null;
       node._cropGui.hasLoadedImage = false;
       const result = original?.call(this, value, ...args);
       markDirty(node);
